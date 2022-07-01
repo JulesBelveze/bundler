@@ -4,7 +4,9 @@ from bokeh.layouts import column, row
 from bokeh.models import Button, ColumnDataSource, TextInput, DataTable, TableColumn, ColorBar
 from bokeh.plotting import figure
 
-from .utils import get_color_mapping
+from .utils import get_color_mapping, LabelStudioClient, get_datatable_columns
+
+ls_client = LabelStudioClient()
 
 
 def bulk_text(path):
@@ -14,7 +16,7 @@ def bulk_text(path):
 
         mapper, df = get_color_mapping(df)
         columns = [
-            TableColumn(field="text", title="text")
+            TableColumn(field=col, title=col) for col in get_datatable_columns(df)
         ]
 
         def update(attr, old, new):
@@ -28,7 +30,8 @@ def bulk_text(path):
         def save():
             """Callback used to save highlighted data points"""
             global highlighted_idx
-            df.iloc[highlighted_idx][['text']].to_csv(text_filename.value)
+            subset = df.iloc[highlighted_idx]
+            ls_client.create_tab(subset, tab_name.value)
 
         source = ColumnDataSource(data=dict())
         source_orig = ColumnDataSource(data=df)
@@ -36,7 +39,10 @@ def bulk_text(path):
         data_table = DataTable(source=source, columns=columns, width=800)
         source.data = df
 
-        p = figure(title="", sizing_mode="scale_both", tools="lasso_select")
+        p = figure(title="", sizing_mode="scale_both",
+                   tools=["lasso_select", "box_select", "pan", "box_zoom", "wheel_zoom", "reset"])
+        p.toolbar.active_drag = None
+        p.toolbar.active_inspect = None
 
         circle_kwargs = {"x": "x", "y": "y", "size": 1, "source": source_orig}
         if "color" in df.columns:
@@ -46,16 +52,16 @@ def bulk_text(path):
             p.add_layout(color_bar, 'right')
 
         scatter = p.circle(**circle_kwargs)
-        p.plot_width = 300
-        p.plot_height = 300
+        p.plot_width = 600
+        p.plot_height = 600
 
         scatter.data_source.selected.on_change('indices', update)
 
-        text_filename = TextInput(value="out.csv", title="Filename:")
-        save_btn = Button(label="SAVE")
-        save_btn.on_click(save)
+        tab_name = TextInput(value="", title="Tab name:")
+        tab_btn = Button(label="Create tab")
+        tab_btn.on_click(save)
 
-        controls = column(p, text_filename, save_btn)
+        controls = column(p, tab_name, tab_btn)
         return doc.add_root(
             row(controls, data_table)
         )
