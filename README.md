@@ -6,16 +6,21 @@ Bulk is a quick developer tool to apply some bulk labels. Given a prepared datas
 
 ![](screenshot.png)
 
+
+
 # Install 
 
 ```
-python -m pip install --upgrade pip
-python -m pip install bulk
+git clone https://github.com/JulesBelveze/bulk.git
 ```
+
+## Disclaimer
+
+The original tool from [koaning](https://github.com/koaning) can be found [here](https://github.com/koaning/bulk), but I forked the project and kept working on my fork as our use cases were different.
 
 ## Usage
 
-To use bulk, you'll first need to prepare a csv file for the lasso widget.
+To use bulk, you'll first need to prepare a csv file.
 
 > **Note**
 > The example below uses the [universal sentence encoder](https://tfhub.dev/google/universal-sentence-encoder/4) but you're
@@ -27,16 +32,16 @@ To use bulk, you'll first need to prepare a csv file for the lasso widget.
 ```python
 import pandas as pd
 from umap import UMAP
-import tensorflow_hub as hub
+from sentence_transformers import SentenceTransformer
 
 # Load the universal sentence encoder
-embed = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
 
 # Load original dataset
 df = pd.read_csv("original.csv")
 
 # Apply embeddings 
-X = embed(df['text'])
+X = model.encode(df['text'])
 
 # Reduce the dimensions with UMAP
 umap = UMAP()
@@ -51,9 +56,9 @@ df.to_csv("ready.csv")
 You can now use this `ready.csv` file to apply some bulk labelling. 
 
 ```
-python -m bulk text ready.csv
+python3 -m bulk text ready.csv
 ```
 
 ## Usecase 
 
-The interface may help you label very quickly, but the labels themselves may be faily noisy. The intended use-case for this tool is to prepare interesting subsets to be used later in [prodi.gy](https://prodi.gy). 
+The interface may help you label very quickly. It enables you to directly create tabs on Label Studio to either correct or create labels.
