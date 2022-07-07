@@ -47,7 +47,7 @@ def get_datatable_columns(df: pd.DataFrame) -> List[str]:
     columns = df.columns
     filtered_columns = []
     for c in columns:
-        if c in ["x", "y", "color"] or c.startswith("Unnamed"):
+        if c in ["x", "y"] or c.startswith("Unnamed"):
             continue
         filtered_columns.append(c)
     return filtered_columns
