@@ -1,9 +1,8 @@
 import logging
 import os
-from collections import defaultdict
-
 import pandas as pd
 import requests as requests
+from collections import defaultdict
 from dotenv import load_dotenv
 
 load_dotenv()

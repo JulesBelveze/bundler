@@ -1,12 +1,11 @@
 import argparse
 import json
-from typing import Dict, List
-
 import numpy as np
 import pandas as pd
 import torch
 from tqdm import tqdm
 from transformers import LukeTokenizer, LukeModel
+from typing import Dict, List
 from umap import UMAP
 
 model_name = "studio-ousia/luke-base"

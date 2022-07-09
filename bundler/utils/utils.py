@@ -1,10 +1,9 @@
-from typing import Tuple, Optional, List
-
 import bokeh.transform
 import numpy as np
 import pandas as pd
 from bokeh.palettes import Cividis256, cividis
 from bokeh.transform import linear_cmap, factor_cmap
+from typing import Tuple, Optional, List
 
 
 def get_color_mapping(df: pd.DataFrame) -> Tuple[Optional[bokeh.transform.transform], pd.DataFrame]:
