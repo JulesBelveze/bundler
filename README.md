@@ -19,7 +19,7 @@ Then download and install the package dependencies using [poetry](https://python
 
 ```
 python3 -m venv .venv/bundler
-source .venv/bundler/bin/active
+source .venv/bundler/bin/activate
 pip3 install --upgrade pip
 poetry install
 ```
