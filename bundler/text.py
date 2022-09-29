@@ -1,17 +1,26 @@
 import numpy as np
 import pandas as pd
 from bokeh.layouts import column, row
-from bokeh.models import Button, ColumnDataSource, TextInput, DataTable, TableColumn, ColorBar, MultiChoice
+from bokeh.models import Button, ColumnDataSource, TextInput, DataTable, TableColumn, ColorBar, MultiChoice, RangeSlider
 from bokeh.plotting import figure
 
 from .utils import get_color_mapping, LabelStudioClient, get_datatable_columns
 
 ls_client = LabelStudioClient()
 
+def float_label_filter(df, values):
+    min_val = values[0]
+    max_val = values[1]
+
+    return df[(df['color'] > min_val) & (df['color'] < max_val)]
+
+def default_label_filter(df, values):
+    return df[df['color'].isin(values)]
 
 def bulk_text(path):
     def bkapp(doc):
         df = pd.read_csv(path)
+        LABEL_IS_FLOAT = df['color'].dtype == np.float64
         highlighted_idx = []
 
         mapper, df = get_color_mapping(df)
@@ -27,9 +36,9 @@ def bulk_text(path):
             subset = subset.iloc[np.random.permutation(len(subset))]
 
             if label_filters.value:
-                source.data = subset[subset['color'].isin(label_filters.value)]
-            else:
-                source.data = subset
+                subset = filter_func(subset, label_filters.value)
+
+            source.data = subset
 
         def save():
             """Callback used to save highlighted data points"""
@@ -37,7 +46,7 @@ def bulk_text(path):
             subset = df.iloc[highlighted_idx]
 
             if label_filters.value:
-                subset = subset[subset['color'].isin(label_filters.value)]
+                subset = filter_func(subset, label_filters.value)
 
             ls_client.create_tab(subset, tab_name.value)
 
@@ -69,9 +78,17 @@ def bulk_text(path):
         tab_btn = Button(label="Create tab")
         tab_btn.on_click(save)
 
-        df['color'] = df['color'].astype(str) #MultiChoice works only with Strings
+        if LABEL_IS_FLOAT:
+            min_val = df['color'].min()
+            max_val = df['color'].max()
+            label_filters = RangeSlider(title='label filters', start=min_val, end=max_val, value=(min_val, max_val), step=0.01)
 
-        label_filters = MultiChoice(title= 'label filters', options=df.color.unique().tolist())
+            filter_func = float_label_filter
+        else:
+            df['color'] = df['color'].astype(str)  # MultiChoice works only with Strings
+            label_filters = MultiChoice(title='label filters', options=df.color.unique().tolist())
+
+            filter_func = default_label_filter
 
         controls = column(p, tab_name, label_filters, tab_btn)
         return doc.add_root(
