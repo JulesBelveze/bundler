@@ -25,7 +25,11 @@ def bulk_text(path):
             subset = df.iloc[new]
             highlighted_idx = new
             subset = subset.iloc[np.random.permutation(len(subset))]
-            source.data = subset
+
+            if label_filters.value:
+                source.data = subset[subset['color'].isin(label_filters.value)]
+            else:
+                source.data = subset
 
         def save():
             """Callback used to save highlighted data points"""
