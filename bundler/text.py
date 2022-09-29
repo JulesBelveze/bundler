@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from bokeh.layouts import column, row
-from bokeh.models import Button, ColumnDataSource, TextInput, DataTable, TableColumn, ColorBar
+from bokeh.models import Button, ColumnDataSource, TextInput, DataTable, TableColumn, ColorBar, MultiChoice
 from bokeh.plotting import figure
 
 from .utils import get_color_mapping, LabelStudioClient, get_datatable_columns
@@ -31,6 +31,10 @@ def bulk_text(path):
             """Callback used to save highlighted data points"""
             global highlighted_idx
             subset = df.iloc[highlighted_idx]
+
+            if label_filters.value:
+                subset = subset[subset['color'].isin(label_filters.value)]
+
             ls_client.create_tab(subset, tab_name.value)
 
         source = ColumnDataSource(data=dict())
@@ -61,7 +65,9 @@ def bulk_text(path):
         tab_btn = Button(label="Create tab")
         tab_btn.on_click(save)
 
-        controls = column(p, tab_name, tab_btn)
+        label_filters = MultiChoice(title= 'label filters', options=df.color.unique().tolist())
+
+        controls = column(p, tab_name, label_filters, tab_btn)
         return doc.add_root(
             row(controls, data_table)
         )
