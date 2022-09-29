@@ -69,6 +69,8 @@ def bulk_text(path):
         tab_btn = Button(label="Create tab")
         tab_btn.on_click(save)
 
+        df['color'] = df['color'].astype(str) #MultiChoice works only with Strings
+
         label_filters = MultiChoice(title= 'label filters', options=df.color.unique().tolist())
 
         controls = column(p, tab_name, label_filters, tab_btn)
