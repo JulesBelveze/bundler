@@ -35,8 +35,19 @@ def bulk_text(path):
             highlighted_idx = new
             subset = subset.iloc[np.random.permutation(len(subset))]
 
-            if label_filters.value:
-                subset = filter_func(subset, label_filters.value)
+            if label_filter_widget.value:
+                subset = filter_func(subset, label_filter_widget.value)
+
+            source.data = subset
+
+        def update_on_label_filter(attr, old, new):
+            """Callback used for plot update when changing label filter"""
+            global highlighted_idx
+            subset = df.iloc[highlighted_idx]
+            subset = subset.iloc[np.random.permutation(len(subset))]
+
+            if new:
+                subset = filter_func(subset, new)
 
             source.data = subset
 
@@ -45,8 +56,8 @@ def bulk_text(path):
             global highlighted_idx
             subset = df.iloc[highlighted_idx]
 
-            if label_filters.value:
-                subset = filter_func(subset, label_filters.value)
+            if label_filter_widget.value:
+                subset = filter_func(subset, label_filter_widget.value)
 
             ls_client.create_tab(subset, tab_name.value)
 
@@ -81,16 +92,18 @@ def bulk_text(path):
         if LABEL_IS_FLOAT:
             min_val = df['color'].min()
             max_val = df['color'].max()
-            label_filters = RangeSlider(title='label filters', start=min_val, end=max_val, value=(min_val, max_val), step=0.01)
+            label_filter_widget = RangeSlider(title='label filters', start=min_val, end=max_val, value=(min_val, max_val), step=0.01)
 
             filter_func = float_label_filter
         else:
             df['color'] = df['color'].astype(str)  # MultiChoice works only with Strings
-            label_filters = MultiChoice(title='label filters', options=df.color.unique().tolist())
+            label_filter_widget = MultiChoice(title='label filters', options=df.color.unique().tolist())
 
             filter_func = default_label_filter
 
-        controls = column(p, tab_name, label_filters, tab_btn)
+        label_filter_widget.on_change('value', update_on_label_filter)
+
+        controls = column(p, tab_name, label_filter_widget, tab_btn)
         return doc.add_root(
             row(controls, data_table)
         )
