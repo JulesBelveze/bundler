@@ -1,26 +1,27 @@
 import numpy as np
 import pandas as pd
 from bokeh.layouts import column, row
-from bokeh.models import Button, ColumnDataSource, TextInput, DataTable, TableColumn, ColorBar, MultiChoice, RangeSlider
+from bokeh.models import Button, ColorBar, ColumnDataSource, DataTable, MultiChoice, RangeSlider, TableColumn, TextInput
 from bokeh.plotting import figure
 
-from .utils import get_color_mapping, LabelStudioClient, get_datatable_columns
+from .utils import LabelStudioClient, get_color_mapping, get_datatable_columns
 
 ls_client = LabelStudioClient()
 
-def float_label_filter(df, values):
-    min_val = values[0]
-    max_val = values[1]
 
-    return df[(df['color'] > min_val) & (df['color'] < max_val)]
+def label_filter(df, values, is_label_float):
+    """"""
+    if is_label_float:
+        min_val, max_val = values
+        return df[(df['color'] > min_val) & (df['color'] < max_val)]
+    else:
+        return df[df['color'].isin(values)]
 
-def default_label_filter(df, values):
-    return df[df['color'].isin(values)]
 
 def bulk_text(path):
     def bkapp(doc):
         df = pd.read_csv(path)
-        LABEL_IS_FLOAT = df['color'].dtype == np.float64
+        is_label_float = str(df["color"].dtype).startswith("float")
         highlighted_idx = []
 
         mapper, df = get_color_mapping(df)
@@ -36,7 +37,7 @@ def bulk_text(path):
             subset = subset.iloc[np.random.permutation(len(subset))]
 
             if label_filter_widget.value:
-                subset = filter_func(subset, label_filter_widget.value)
+                subset = label_filter(subset, label_filter_widget.value, is_label_float)
 
             source.data = subset
 
@@ -47,7 +48,7 @@ def bulk_text(path):
             subset = subset.iloc[np.random.permutation(len(subset))]
 
             if new:
-                subset = filter_func(subset, new)
+                subset = label_filter(subset, new, is_label_float)
 
             source.data = subset
 
@@ -57,7 +58,7 @@ def bulk_text(path):
             subset = df.iloc[highlighted_idx]
 
             if label_filter_widget.value:
-                subset = filter_func(subset, label_filter_widget.value)
+                subset = label_filter(subset, label_filter_widget.value, is_label_float)
 
             ls_client.create_tab(subset, tab_name.value)
 
@@ -89,17 +90,14 @@ def bulk_text(path):
         tab_btn = Button(label="Create tab")
         tab_btn.on_click(save)
 
-        if LABEL_IS_FLOAT:
+        if is_label_float:
             min_val = df['color'].min()
             max_val = df['color'].max()
-            label_filter_widget = RangeSlider(title='label filters', start=min_val, end=max_val, value=(min_val, max_val), step=0.01)
-
-            filter_func = float_label_filter
+            label_filter_widget = RangeSlider(title='label filters', start=min_val, end=max_val,
+                                              value=(min_val, max_val), step=0.01)
         else:
             df['color'] = df['color'].astype(str)  # MultiChoice works only with Strings
             label_filter_widget = MultiChoice(title='label filters', options=df.color.unique().tolist())
-
-            filter_func = default_label_filter
 
         label_filter_widget.on_change('value', update_on_label_filter)
 
