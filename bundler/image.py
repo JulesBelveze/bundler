@@ -2,7 +2,6 @@ from itertools import zip_longest
 from typing import Any, Iterable, Iterator
 
 import numpy as np
-import pandas as pd
 from bokeh.layouts import column, row
 from bokeh.models import Button, ColorBar, ColumnDataSource, DataTable, MultiChoice, RangeSlider, TableColumn, \
     TextInput, HTMLTemplateFormatter

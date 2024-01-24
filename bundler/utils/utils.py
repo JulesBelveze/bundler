@@ -1,14 +1,15 @@
 import base64
+import io
 import logging
 from typing import Tuple, Optional, List
-from PIL import Image
-import io
-from tqdm import tqdm
+
 import bokeh.transform
 import numpy as np
 import pandas as pd
+from PIL import Image
 from bokeh.palettes import Magma256, magma
 from bokeh.transform import linear_cmap, factor_cmap
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 

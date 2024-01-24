@@ -1,11 +1,12 @@
 import pathlib
+
 import typer
 from bokeh.server.server import Server
 from bokeh.util.browser import view
 from tornado.ioloop import IOLoop
 
-from bundler.text import bulk_text
 from bundler.image import bulk_images
+from bundler.text import bulk_text
 
 app = typer.Typer(
     name="bundler",
