@@ -1,11 +1,14 @@
 import logging
 import os
+from collections import defaultdict
+
 import pandas as pd
 import requests as requests
-from collections import defaultdict
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 class LabelStudioAuthenticationError(Exception):
@@ -48,7 +51,7 @@ class LabelStudioClient(object):
                     "hiddenColumns": {
                         "explore": [
                             "tasks:inner_id",
-                            "tasks:annotations_results",
+                            "tasks:annotations_by",
                             "tasks:annotations_ids",
                             "tasks:predictions_score",
                             "tasks:predictions_model_versions",
@@ -57,7 +60,8 @@ class LabelStudioClient(object):
                             "tasks:created_at",
                             "tasks:updated_at",
                             "tasks:updated_by",
-                            "tasks:avg_lead_time"
+                            "tasks:avg_lead_time",
+                            "tasks:storage_filename"
                         ],
                         "labeling": [
                             "tasks:id",
@@ -75,13 +79,14 @@ class LabelStudioClient(object):
                             "tasks:created_at",
                             "tasks:updated_at",
                             "tasks:updated_by",
-                            "tasks:avg_lead_time"
+                            "tasks:avg_lead_time",
+                            "tasks:drafts"
                         ]
                     },
                     "columnsDisplayType": {}
                 },
                 "project": project,
-                "user": 5
+                "user": 1
             }
             if len(ids) <= 100:
                 query["data"]["title"] = name
@@ -100,9 +105,9 @@ class LabelStudioClient(object):
                 r = requests.post(url, json=query, headers=self.headers)
                 try:
                     assert r.status_code == 201
-                    logging.info(f"Tab {name} has been created.")
+                    logger.info(f"Tab {name} has been created.")
                 except AssertionError:
-                    logging.error(f"Upload aborted:\n{r.json()}")
+                    logger.error(f"Upload aborted:\n{r.json()}")
             else:
                 for i, offset in enumerate(range(0, len(ids), 100)):
                     batch = ids[offset: offset + 100]
@@ -124,6 +129,6 @@ class LabelStudioClient(object):
                     r = requests.post(url, json=query, headers=self.headers)
                     try:
                         assert r.status_code == 201
-                        logging.info(f"Tab {name} has been created.")
+                        logger.info(f"Tab {name} has been created.")
                     except AssertionError:
-                        logging.error(f"Upload aborted:\n{r.json()}")
+                        logger.error(f"Upload aborted:\n{r.json()}")
