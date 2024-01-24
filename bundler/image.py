@@ -1,47 +1,83 @@
+from itertools import zip_longest
+from typing import Any, Iterable, Iterator
+
 import numpy as np
 import pandas as pd
 from bokeh.layouts import column, row
-from bokeh.models import Button, ColorBar, ColumnDataSource, DataTable, MultiChoice, RangeSlider, TableColumn, TextInput
+from bokeh.models import Button, ColorBar, ColumnDataSource, DataTable, MultiChoice, RangeSlider, TableColumn, \
+    TextInput, HTMLTemplateFormatter
 from bokeh.plotting import figure
 
 from bundler.utils.ls_client import LabelStudioClient
-from bundler.utils.utils import get_color_mapping, get_datatable_columns, label_filter
+from bundler.utils.utils import get_datatable_columns, label_filter, read_file
 
 ls_client = LabelStudioClient()
 
 
-def bulk_text(path):
+def grouper(iterable: Iterable, n: int, *, incomplete: str = "fill", fillvalue: Any = None) -> Iterator:
     """
-    Returns a Bokeh application function to visualize data from a CSV file.
+    Collect data into non-overlapping fixed-length chunks or blocks
 
     Args:
-        path (str): The file system path to the CSV file containing and accompanying data.
+        iterable (Iterable): The iterable to be grouped.
+        n (int): Desired length of chunks or blocks.
+        incomplete (str): Strategy to handle incomplete chunks: "fill", "strict", or "ignore".
+        fillvalue (Any): The value to fill in for missing values if incomplete is "fill". Default is None.
+
+    Returns:
+        Iterator: An iterator producing tuples of elements from the iterable. The length of these
+            tuples is determined by `n`, and the behavior of incomplete chunks is determined by the
+            `incomplete` argument.
+    """
+    args = [iter(iterable)] * n
+    if incomplete == "fill":
+        return zip_longest(*args, fillvalue=fillvalue)
+    if incomplete == "strict":
+        return zip(*args, strict=True)
+    if incomplete == "ignore":
+        return zip(*args)
+    else:
+        raise ValueError("Expected fill, strict, or ignore")
+
+
+def bulk_images(path):
+    """
+    Returns a Bokeh application function to visualize images and data from a CSV file.
+
+    Args:
+        path (str): The file system path to the CSV file containing image paths and accompanying data.
 
     Returns:
         function: A Bokeh application function that can be used to serve an interactive data table
-            and text viewer.
+            and image viewer.
 
-    The application lets the user select data points (text) and optionally filter by a 'color'
+    The application lets the user select data points (images) and optionally filter by a 'color'
     column using widgets. The filtered or selected data can be saved in a new tab within a Bokeh server.
     """
 
     def bkapp(doc):
         """
-        The Bokeh application function that creates interactive data and text visualization.
+        The Bokeh application function that creates interactive data and image visualization.
 
         Parameters:
             doc: The Bokeh document to which elements can be added.
 
         This inner function sets up the layout and interactive callbacks of the Bokeh application.
         """
-        df = pd.read_csv(path)
+        mapper, df = read_file(path)
 
+        # Indices of the selected/highlighted images
         highlighted_idx = []
 
-        mapper, df = get_color_mapping(df)
         columns = [
-            TableColumn(field=col, title=col) for col in get_datatable_columns(df)
-        ]
+                      TableColumn(
+                          field="image",
+                          title="image",
+                          formatter=HTMLTemplateFormatter(template="<%=image%>"),
+                      )
+                  ] + [
+                      TableColumn(field=col, title=col) for col in get_datatable_columns(df) if col != "image"
+                  ]
 
         is_label_float = str(df["color"].dtype).startswith("float") if mapper is not None else None
 
@@ -81,8 +117,12 @@ def bulk_text(path):
         source = ColumnDataSource(data=dict())
         source_orig = ColumnDataSource(data=df)
 
-        data_table = DataTable(source=source, columns=columns, width=800)
-        source.data = df
+        data_table = DataTable(
+            source=source,
+            columns=columns,
+            row_height=100
+        )
+        source.data = df[:20]
 
         p = figure(
             title="",
@@ -104,8 +144,8 @@ def bulk_text(path):
             p.add_layout(color_bar, "right")
 
         scatter = p.circle(**circle_kwargs)
-        p.plot_width = 600
-        p.plot_height = 600
+        p.plot_width = 800
+        p.plot_height = 800
 
         scatter.data_source.selected.on_change("indices", update)
 
@@ -122,7 +162,10 @@ def bulk_text(path):
                                                   value=(min_val, max_val), step=0.01)
             else:
                 df["color"] = df["color"].astype(str)  # MultiChoice works only with Strings
-                label_filter_widget = MultiChoice(title="label filters", options=df.color.unique().tolist())
+                label_filter_widget = MultiChoice(
+                    title="label filters",
+                    options=df.color.unique().tolist()
+                )
 
             label_filter_widget.on_change("value", update_on_label_filter)
             controls = column(p, tab_name, label_filter_widget, tab_btn)
